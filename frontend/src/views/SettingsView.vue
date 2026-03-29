@@ -44,7 +44,7 @@ async function submitRename() {
   busy.value = true
   try {
     const res = await accountApi.rename(newUsername)
-    auth.setToken(res.token)
+    auth.setTokenPair(res)
     rename.open = false
     toast.success('改名成功（已刷新 token）')
   } catch (e) {
@@ -165,4 +165,3 @@ async function onLogout() {
   background: rgba(255, 255, 255, 0.1);
 }
 </style>
-

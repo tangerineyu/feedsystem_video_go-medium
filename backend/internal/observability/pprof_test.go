@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 )
+
 func TestNewPprofMux(t *testing.T) {
 	t.Parallel()
 
@@ -24,14 +25,17 @@ func TestNewPprofServerWithDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create pprof server: %v", err)
 	}
-	if pprofServer != nil {
-		t.Fatalf("Expected nil pprof server when disabled, got non-nil")
+	if pprofServer == nil {
+		t.Fatalf("Expected non-nil pprof server wrapper when disabled, got nil")
+	}
+	if pprofServer.server != nil {
+		t.Fatalf("Expected disabled pprof server to not initialize http server")
 	}
 }
 
 func TestPprofServerCloseWithDisabledServer(t *testing.T) {
 	t.Parallel()
-	
+
 	pprofServer, err := NewPprofServer("api", false, "localhost:6060")
 	if err != nil {
 		t.Fatalf("Failed to create pprof server: %v", err)

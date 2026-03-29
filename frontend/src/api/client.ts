@@ -1,4 +1,6 @@
 import { useAuthStore } from '../stores/auth'
+import { createRefreshCoordinator } from './refresh-session'
+import type { TokenResponse } from './types'
 
 export class ApiError extends Error {
   status: number
@@ -16,30 +18,87 @@ type ApiErrorBody = { error?: string }
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api'
 
-export async function postJson<T>(path: string, body: unknown, options?: { authRequired?: boolean }): Promise<T> {
-  const auth = useAuthStore()
-  const token = auth.token
+type RequestOptions = {
+  authRequired?: boolean
+  skipRefresh?: boolean
+  omitAuth?: boolean
+}
 
-  if (options?.authRequired && !token) {
-    throw new ApiError('需要先登录（缺少 token）', 401)
+async function readResponse(res: Response) {
+  const text = await res.text()
+  if (!text) return null
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text
+  }
+}
+
+function getErrorMessage(data: unknown, status: number) {
+  return data && typeof data === 'object' && (data as ApiErrorBody).error
+    ? String((data as ApiErrorBody).error)
+    : `请求失败 (${status})`
+}
+
+async function requestRefreshToken(refreshToken: string): Promise<TokenResponse> {
+  const res = await fetch(`${API_BASE}/account/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  })
+
+  const data = await readResponse(res)
+  if (!res.ok) {
+    throw new ApiError(getErrorMessage(data, res.status), res.status, data)
   }
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  return data as TokenResponse
+}
+
+const refreshAccessToken = createRefreshCoordinator(requestRefreshToken)
+
+async function tryRefreshToken() {
+  const auth = useAuthStore()
+  return refreshAccessToken({
+    getRefreshToken: () => auth.refreshToken,
+    setTokenPair: (pair) => auth.setTokenPair(pair),
+    clearToken: () => auth.clearToken(),
+  })
+}
+
+async function requestWithAuthRetry<T>(
+  path: string,
+  init: { headers: Record<string, string>; body: BodyInit | null },
+  options?: RequestOptions,
+): Promise<T> {
+  const auth = useAuthStore()
+
+  let token = options?.omitAuth ? null : auth.token
+  if (options?.authRequired && !token) {
+    token = await tryRefreshToken()
+    if (!token) {
+      throw new ApiError('需要先登录（缺少 token）', 401)
+    }
+  }
+
+  const headers: Record<string, string> = { ...init.headers }
   if (token) headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers,
-    body: JSON.stringify(body ?? {}),
+    body: init.body,
   })
 
-  const text = await res.text()
-  let data: unknown = null
-  if (text) {
-    try {
-      data = JSON.parse(text)
-    } catch {
-      data = text
+  const data = await readResponse(res)
+  if (res.status === 401 && !options?.skipRefresh && !options?.omitAuth && auth.refreshToken) {
+    const refreshedToken = await tryRefreshToken()
+    if (refreshedToken) {
+      return requestWithAuthRetry<T>(path, init, { ...options, skipRefresh: true })
+    }
+    if (!options?.authRequired) {
+      return requestWithAuthRetry<T>(path, init, { ...options, skipRefresh: true, omitAuth: true })
     }
   }
 
@@ -47,53 +106,23 @@ export async function postJson<T>(path: string, body: unknown, options?: { authR
     if (res.status === 401) {
       auth.clearToken()
     }
-    const msg =
-      data && typeof data === 'object' && (data as ApiErrorBody).error
-        ? String((data as ApiErrorBody).error)
-        : `请求失败 (${res.status})`
-    throw new ApiError(msg, res.status, data)
+    throw new ApiError(getErrorMessage(data, res.status), res.status, data)
   }
 
   return data as T
 }
 
+export async function postJson<T>(path: string, body: unknown, options?: { authRequired?: boolean }): Promise<T> {
+  return requestWithAuthRetry<T>(
+    path,
+    {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body ?? {}),
+    },
+    options,
+  )
+}
+
 export async function postForm<T>(path: string, body: FormData, options?: { authRequired?: boolean }): Promise<T> {
-  const auth = useAuthStore()
-  const token = auth.token
-
-  if (options?.authRequired && !token) {
-    throw new ApiError('需要先登录（缺少 token）', 401)
-  }
-
-  const headers: Record<string, string> = {}
-  if (token) headers.Authorization = `Bearer ${token}`
-
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers,
-    body,
-  })
-
-  const text = await res.text()
-  let data: unknown = null
-  if (text) {
-    try {
-      data = JSON.parse(text)
-    } catch {
-      data = text
-    }
-  }
-
-  if (!res.ok) {
-    if (res.status === 401) {
-      auth.clearToken()
-    }
-    const msg =
-      data && typeof data === 'object' && (data as ApiErrorBody).error
-        ? String((data as ApiErrorBody).error)
-        : `请求失败 (${res.status})`
-    throw new ApiError(msg, res.status, data)
-  }
-
-  return data as T
+  return requestWithAuthRetry<T>(path, { headers: {}, body }, options)
 }

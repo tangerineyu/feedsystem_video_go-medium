@@ -5,6 +5,7 @@ type Account struct {
 	Username string `gorm:"unique" json:"username"`
 	Password string `json:"-"`
 	Token    string `json:"-"`
+	RefreshTokenHash string `gorm:"type:char(64)" json:"-"`
 }
 
 type CreateAccountRequest struct {
@@ -43,4 +44,13 @@ type ChangePasswordRequest struct {
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type TokenPairResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }

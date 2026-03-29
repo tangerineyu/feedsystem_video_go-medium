@@ -41,7 +41,7 @@ func (h *AccountHandler) Rename(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	token, err := h.accountService.Rename(c.Request.Context(), accountID, req.NewUsername)
+	resp, err := h.accountService.Rename(c.Request.Context(), accountID, req.NewUsername)
 	if err != nil {
 		if errors.Is(err, ErrNewUsernameRequired) {
 			c.JSON(400, gin.H{"error": err.Error()})
@@ -58,7 +58,25 @@ func (h *AccountHandler) Rename(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, gin.H{"token": token})
+	c.JSON(200, resp)
+}
+
+func (h *AccountHandler) Refresh(c *gin.Context) {
+	var req RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	resp, err := h.accountService.Refresh(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		if errors.Is(err, ErrInvalidRefreshToken) || errors.Is(err, ErrRefreshTokenRevoked) {
+			c.JSON(401, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
 }
 
 func (h *AccountHandler) ChangePassword(c *gin.Context) {
@@ -108,11 +126,11 @@ func (h *AccountHandler) Login(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	if token, err := h.accountService.Login(c.Request.Context(), req.Username, req.Password); err != nil {
+	if resp, err := h.accountService.Login(c.Request.Context(), req.Username, req.Password); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	} else {
-		c.JSON(200, gin.H{"token": token})
+		c.JSON(200, resp)
 	}
 }
 

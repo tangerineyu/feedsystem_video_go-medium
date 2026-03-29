@@ -32,20 +32,34 @@ func (ar *AccountRepository) Rename(ctx context.Context, id uint, newUsername st
 	return nil
 }
 
-func (ar *AccountRepository) RenameWithToken(ctx context.Context, id uint, newUsername string, token string) error {
+func (ar *AccountRepository) RenameWithToken(ctx context.Context, id uint, newUsername string, accesstoken string, refreshToken string) error {
 	return ar.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&Account{}).Where("id = ?", id).Update("username", newUsername)
+		result := tx.Model(&Account{}).Where("id = ?", id).Updates(map[string]any{
+			"username": newUsername,
+			"token":    accesstoken,
+			"refresh_token_hash": refreshToken,
+		})
 		if result.Error != nil {
 			return result.Error
 		}
 		if result.RowsAffected == 0 {
 			return gorm.ErrRecordNotFound
 		}
-		if err := tx.Model(&Account{}).Where("id = ?", id).Update("token", token).Error; err != nil {
-			return err
-		}
 		return nil
 	})
+}
+func (ar *AccountRepository) UpdateTokens(ctx context.Context, id uint, accessToken string, refreshToken string) error {
+	result := ar.db.WithContext(ctx).Model(&Account{}).Where("id = ?", id).Updates(map[string]any{
+		"token":    accessToken,
+		"refresh_token_hash": refreshToken,
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func (ar *AccountRepository) ChangePassword(ctx context.Context, id uint, newPassword string) error {
@@ -79,8 +93,15 @@ func (ar *AccountRepository) Login(ctx context.Context, id uint, token string) e
 }
 
 func (ar *AccountRepository) Logout(ctx context.Context, id uint) error {
-	if err := ar.db.WithContext(ctx).Model(&Account{}).Where("id = ?", id).Update("token", "").Error; err != nil {
-		return err
+	result := ar.db.WithContext(ctx).Model(&Account{}).Where("id = ?", id).Updates(map[string]any{
+		"token":    "",
+		"refresh_token_hash": "",
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }

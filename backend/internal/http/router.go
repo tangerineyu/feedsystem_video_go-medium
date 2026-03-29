@@ -38,6 +38,7 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *g
 	{
 		accountGroup.POST("/register", registerLimiter, accountHandler.CreateAccount)
 		accountGroup.POST("/login", loginLimiter, accountHandler.Login)
+		accountGroup.POST("/refresh", accountHandler.Refresh)
 		accountGroup.POST("/changePassword", accountHandler.ChangePassword)
 		accountGroup.POST("/findByID", accountHandler.FindByID)
 		accountGroup.POST("/findByUsername", accountHandler.FindByUsername)

@@ -33,7 +33,7 @@ func JWTAuth(accountRepo *account.AccountRepository, cache *rediscache.Client) g
 
 		tokenString := parts[1]
 
-		claims, err := auth.ParseToken(tokenString)
+		claims, err := auth.ParseAccessToken(tokenString)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
@@ -58,7 +58,7 @@ func SoftJWTAuth(accountRepo *account.AccountRepository, cache *rediscache.Clien
 
 		tokenString := parts[1]
 
-		claims, err := auth.ParseToken(tokenString)
+		claims, err := auth.ParseAccessToken(tokenString)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
@@ -100,7 +100,7 @@ func check(c *gin.Context, claims *auth.Claims, tokenString string, accountRepo 
 		cacheCtx, cancel := context.WithTimeout(c.Request.Context(), 50*time.Millisecond)
 		defer cancel()
 
-		if err := cache.SetBytes(cacheCtx, key, []byte(tokenString), 24*time.Hour); err != nil {
+		if err := cache.SetBytes(cacheCtx, key, []byte(tokenString), auth.AccessTokenTTL()); err != nil {
 			log.Printf("failed to set cache: %v", err)
 		}
 	}
