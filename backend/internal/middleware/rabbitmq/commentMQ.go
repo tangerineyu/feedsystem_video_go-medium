@@ -26,6 +26,10 @@ type CommentEvent struct {
 	Username   string    `json:"username,omitempty"`
 	VideoID    uint      `json:"video_id,omitempty"`
 	AuthorID   uint      `json:"author_id,omitempty"`
+	ParentID uint      `json:"parent_id,omitempty"`
+	ReplyToCommentID uint      `json:"reply_to_comment_id,omitempty"`
+	ReplyToUserID uint      `json:"reply_to_user_id,omitempty"`
+	ReplyToUsername string    `json:"reply_to_username,omitempty"`
 	Content    string    `json:"content,omitempty"`
 	OccurredAt time.Time `json:"occurred_at"`
 }
@@ -40,13 +44,8 @@ func NewCommentMQ(base *RabbitMQ) (*CommentMQ, error) {
 	return &CommentMQ{RabbitMQ: base}, nil
 }
 
-func (c *CommentMQ) Publish(ctx context.Context, username string, videoID, authorID uint, content string) error {
-	return c.publish(ctx, "publish", commentPublishRK, CommentEvent{
-		Username: username,
-		VideoID:  videoID,
-		AuthorID: authorID,
-		Content:  content,
-	})
+func (c *CommentMQ) Publish(ctx context.Context, evt CommentEvent) error {
+	return c.publish(ctx, "publish", commentPublishRK, evt)
 }
 
 func (c *CommentMQ) Delete(ctx context.Context, commentID uint) error {

@@ -3,6 +3,7 @@ module feedsystem_video_go
 go 1.24.5
 
 require (
+	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.0

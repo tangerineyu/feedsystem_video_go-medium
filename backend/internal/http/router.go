@@ -100,6 +100,7 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *g
 	commentGroup := r.Group("/comment")
 	{
 		commentGroup.POST("/listAll", commentHandler.GetAllComments)
+		commentGroup.POST("/listReplies", commentHandler.ListReplies)
 	}
 	protectedCommentGroup := commentGroup.Group("")
 	protectedCommentGroup.Use(jwt.JWTAuth(accountRepository, cache))

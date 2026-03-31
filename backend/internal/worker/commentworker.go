@@ -99,9 +99,19 @@ func (w *CommentWorker) applyPublish(ctx context.Context, evt *rabbitmq.CommentE
 		VideoID:  evt.VideoID,
 		AuthorID: evt.AuthorID,
 		Content:  strings.TrimSpace(evt.Content),
+		ParentID: evt.ParentID,
+		ReplyToCommentID: evt.ReplyToCommentID,
+		ReplyToUserID: evt.ReplyToUserID,
+		ReplyToUsername: evt.ReplyToUsername,
+		Status: video.CommentStatusNormal,
 	}
 	if err := w.comments.CreateComment(ctx, c); err != nil {
 		return err
+	}
+	if c.ParentID > 0 {
+		if err := w.comments.IncreaseReplyCount(ctx, 1, c.ParentID); err != nil {
+			return err
+		}
 	}
 	return w.videos.ChangePopularity(ctx, evt.VideoID, 1)
 }
@@ -117,6 +127,19 @@ func (w *CommentWorker) applyDelete(ctx context.Context, evt *rabbitmq.CommentEv
 	if c == nil {
 		return nil
 	}
-	return w.comments.DeleteComment(ctx, c)
+	if c.ParentID == 0 {
+		hasReplies, err := w.comments.HasReplies(ctx, c.ID)
+		if err != nil {
+			return err
+		}
+		if hasReplies {
+			return w.comments.SoftDeleteRoot(ctx, c.ID)
+		}
+		return w.comments.DeleteComment(ctx, c)
+	}
+	if err := w.comments.DeleteComment(ctx, c); err != nil {
+		return err
+	}
+	return w.comments.IncreaseReplyCount(ctx, -1, c.ParentID)
 }
 

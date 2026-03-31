@@ -44,6 +44,8 @@ func (h *CommentHandler) PublishComment(c *gin.Context) {
 		VideoID:  req.VideoID,
 		AuthorID: authorId,
 		Content:  req.Content,
+		ParentID: req.ParentID,
+		ReplyToCommentID: req.ReplyToCommentID,
 	}
 	if err := h.service.Publish(c.Request.Context(), comment); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -85,10 +87,28 @@ func (h *CommentHandler) GetAllComments(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "video_id is required"})
 		return
 	}
-	comments, err := h.service.GetAll(c.Request.Context(), req.VideoID)
+	comments, err := h.service.GetAll(c.Request.Context(), req.VideoID, req.Page, req.PageSize)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, comments)
+	c.JSON(200, gin.H{"comments": comments})
+}
+
+func (h *CommentHandler) ListReplies(c *gin.Context) {
+	var req ListRepliesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	if req.ParentID == 0 {
+		c.JSON(400, gin.H{"error": "parent_id is required"})
+		return
+	}
+	replies, err := h.service.ListReplies(c.Request.Context(), req.ParentID, req.Page, req.PageSize)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"replies": replies})
 }
