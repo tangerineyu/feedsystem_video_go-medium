@@ -2,6 +2,7 @@ package account
 
 import (
 	"errors"
+	"feedsystem_video_go/internal/swagger"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -11,9 +12,22 @@ type AccountHandler struct {
 	accountService *AccountService
 }
 
+var _ = swagger.ErrorResponse{}
+
 func NewAccountHandler(accountService *AccountService) *AccountHandler {
 	return &AccountHandler{accountService: accountService}
 }
+
+// CreateAccount godoc
+// @Summary Register account
+// @Tags account
+// @Accept json
+// @Produce json
+// @Param request body CreateAccountRequest true "create account payload"
+// @Success 200 {object} swagger.MessageResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /account/register [post]
 func (h *AccountHandler) CreateAccount(c *gin.Context) {
 	var req CreateAccountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -30,6 +44,19 @@ func (h *AccountHandler) CreateAccount(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "account created"})
 }
 
+// Rename godoc
+// @Summary Rename current account
+// @Tags account
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body RenameRequest true "rename payload"
+// @Success 200 {object} TokenPairResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 404 {object} swagger.ErrorResponse
+// @Failure 409 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /account/rename [post]
 func (h *AccountHandler) Rename(c *gin.Context) {
 	var req RenameRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -61,6 +88,17 @@ func (h *AccountHandler) Rename(c *gin.Context) {
 	c.JSON(200, resp)
 }
 
+// Refresh godoc
+// @Summary Refresh token pair
+// @Tags account
+// @Accept json
+// @Produce json
+// @Param request body RefreshRequest true "refresh token payload"
+// @Success 200 {object} TokenPairResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 401 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /account/refresh [post]
 func (h *AccountHandler) Refresh(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -79,6 +117,15 @@ func (h *AccountHandler) Refresh(c *gin.Context) {
 	c.JSON(200, resp)
 }
 
+// ChangePassword godoc
+// @Summary Change account password
+// @Tags account
+// @Accept json
+// @Produce json
+// @Param request body ChangePasswordRequest true "change password payload"
+// @Success 200 {object} swagger.MessageResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Router /account/changePassword [post]
 func (h *AccountHandler) ChangePassword(c *gin.Context) {
 	var req ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -92,6 +139,16 @@ func (h *AccountHandler) ChangePassword(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "successfully password changed"})
 }
 
+// FindByID godoc
+// @Summary Find account by ID
+// @Tags account
+// @Accept json
+// @Produce json
+// @Param request body FindByIDRequest true "account id payload"
+// @Success 200 {object} Account
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /account/findByID [post]
 func (h *AccountHandler) FindByID(c *gin.Context) {
 	var req FindByIDRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -106,6 +163,16 @@ func (h *AccountHandler) FindByID(c *gin.Context) {
 	}
 }
 
+// FindByUsername godoc
+// @Summary Find account by username
+// @Tags account
+// @Accept json
+// @Produce json
+// @Param request body FindByUsernameRequest true "username payload"
+// @Success 200 {object} Account
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /account/findByUsername [post]
 func (h *AccountHandler) FindByUsername(c *gin.Context) {
 	var req FindByUsernameRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -120,6 +187,16 @@ func (h *AccountHandler) FindByUsername(c *gin.Context) {
 	}
 }
 
+// Login godoc
+// @Summary Account login
+// @Tags account
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "login payload"
+// @Success 200 {object} TokenPairResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /account/login [post]
 func (h *AccountHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -134,6 +211,15 @@ func (h *AccountHandler) Login(c *gin.Context) {
 	}
 }
 
+// Logout godoc
+// @Summary Logout current account
+// @Tags account
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} swagger.MessageResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /account/logout [post]
 func (h *AccountHandler) Logout(c *gin.Context) {
 	accountID, err := getAccountID(c)
 	if err != nil {

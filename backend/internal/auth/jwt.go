@@ -11,7 +11,7 @@ import (
 const (
 	TokenTypeAccess = "access"
 	TokenTypeRefresh = "refresh"
-	accessTokenExpiry  = 15 * time.Hour
+	accessTokenExpiry  = 15 * time.Minute
 	refreshTokenExpiry = 7 * 24 * time.Hour
 )
 

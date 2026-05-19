@@ -1,7 +1,16 @@
+// @title FeedSystem Video API
+// @version 1.0
+// @description FeedSystem Video backend API documentation.
+// @BasePath /
+// @schemes http
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 package main
 
 import (
 	"context"
+	_ "feedsystem_video_go/docs"
 	"feedsystem_video_go/internal/config"
 	"feedsystem_video_go/internal/db"
 	apphttp "feedsystem_video_go/internal/http"
@@ -77,7 +86,7 @@ func main() {
 	defer pprofServer.Close()
 
 	// 设置路由
-	r := apphttp.SetRouter(sqlDB, cache, rmq)
+	r := apphttp.SetRouter(sqlDB, cache, rmq, cfg.TrustedProxies)
 	log.Printf("Server is running on port %d", cfg.Server.Port)
 	if err := r.Run(":" + strconv.Itoa(cfg.Server.Port)); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

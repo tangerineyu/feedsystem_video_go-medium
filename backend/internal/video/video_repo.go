@@ -3,12 +3,18 @@ package video
 import (
 	"context"
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type VideoRepository struct {
 	db *gorm.DB
+}
+
+type searchVideoIDRow struct {
+	VideoID    uint
+	CreateTime time.Time
 }
 
 func NewVideoRepository(db *gorm.DB) *VideoRepository {
@@ -46,6 +52,90 @@ func (vr *VideoRepository) ListByAuthorID(ctx context.Context, authorID int64) (
 		return nil, err
 	}
 	return videos, nil
+}
+
+func (vr *VideoRepository) Search(ctx context.Context, keyword string, limit int, latestBefore time.Time) ([]Video, error) {
+	terms := buildVideoSearchTerms(keyword)
+	if len(terms) == 0 {
+		return []Video{}, nil
+	}
+
+	videoIDs, err := vr.searchVideoIDs(ctx, vr.db, terms, limit, latestBefore)
+	if err != nil {
+		return nil, err
+	}
+	if len(videoIDs) == 0 {
+		return []Video{}, nil
+	}
+
+	var videos []Video
+	if err := vr.db.WithContext(ctx).
+		Where("id IN ?", videoIDs).
+		Find(&videos).Error; err != nil {
+		return nil, err
+	}
+
+	byID := make(map[uint]Video, len(videos))
+	for _, video := range videos {
+		byID[video.ID] = video
+	}
+
+	ordered := make([]Video, 0, len(videoIDs))
+	for _, id := range videoIDs {
+		if video, ok := byID[id]; ok {
+			ordered = append(ordered, video)
+		}
+	}
+	return ordered, nil
+}
+
+func (vr *VideoRepository) searchVideoIDs(ctx context.Context, db *gorm.DB, terms []string, limit int, latestBefore time.Time) ([]uint, error) {
+	var rows []searchVideoIDRow
+	query := vr.searchVideoIDQuery(ctx, db, terms, latestBefore)
+	if err := query.Limit(limit).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	videoIDs := make([]uint, 0, len(rows))
+	for _, row := range rows {
+		videoIDs = append(videoIDs, row.VideoID)
+	}
+	return videoIDs, nil
+}
+
+func (vr *VideoRepository) searchVideoIDQuery(ctx context.Context, db *gorm.DB, terms []string, latestBefore time.Time) *gorm.DB {
+	query := db.WithContext(ctx).
+		Model(&VideoSearchTerm{})
+	if len(terms) == 1 {
+		query = query.Select("video_id, create_time").Where("term = ?", terms[0])
+	} else {
+		query = query.Select("video_id, MAX(create_time) AS create_time").
+			Where("term IN ?", terms).
+			Group("video_id")
+	}
+	query = query.Order("create_time desc")
+	if !latestBefore.IsZero() {
+		query = query.Where("create_time < ?", latestBefore)
+	}
+	return query
+}
+
+func (vr *VideoRepository) CreateSearchTerms(ctx context.Context, db *gorm.DB, video *Video) error {
+	terms := buildVideoSearchTerms(video.Title, video.Description, video.Username)
+	if len(terms) == 0 {
+		return nil
+	}
+
+	searchTerms := make([]VideoSearchTerm, 0, len(terms))
+	for _, term := range terms {
+		searchTerms = append(searchTerms, VideoSearchTerm{
+			Term:       term,
+			VideoID:    video.ID,
+			CreateTime: video.CreateTime,
+		})
+	}
+
+	return db.WithContext(ctx).Create(&searchTerms).Error
 }
 
 func (vr *VideoRepository) GetByID(ctx context.Context, id uint) (*Video, error) {

@@ -15,11 +15,33 @@ type Video struct {
 	Popularity  int64     `gorm:"column:popularity;not null;default:0" json:"popularity"`
 }
 
+type VideoSearchTerm struct {
+	Term       string    `gorm:"primaryKey;type:varchar(64)"`
+	CreateTime time.Time `gorm:"primaryKey"`
+	VideoID    uint      `gorm:"primaryKey;index:idx_video_id"`
+}
+
+func (VideoSearchTerm) TableName() string {
+	return "video_search_terms"
+}
+
 type PublishVideoRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	PlayURL     string `json:"play_url"`
 	CoverURL    string `json:"cover_url"`
+}
+
+type SearchVideoRequest struct {
+	Keyword    string `json:"keyword"`
+	Limit      int    `json:"limit"`
+	LatestTime int64  `json:"latest_time"`
+}
+
+type SearchVideoResponse struct {
+	VideoList []Video `json:"video_list"`
+	NextTime  int64   `json:"next_time"`
+	HasMore   bool    `json:"has_more"`
 }
 
 type DeleteVideoRequest struct {

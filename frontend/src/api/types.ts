@@ -77,6 +77,12 @@ export type ListByFollowingResponse = {
   has_more: boolean
 }
 
+export type SearchVideoResponse = {
+  video_list: Video[]
+  next_time: number
+  has_more: boolean
+}
+
 export type IsLikedResponse = {
   is_liked: boolean
 }

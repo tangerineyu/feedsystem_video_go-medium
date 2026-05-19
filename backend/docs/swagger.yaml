@@ -1,0 +1,1237 @@
+basePath: /
+definitions:
+  account.Account:
+    properties:
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  account.ChangePasswordRequest:
+    properties:
+      new_password:
+        type: string
+      old_password:
+        type: string
+      username:
+        type: string
+    type: object
+  account.CreateAccountRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  account.FindByIDRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  account.FindByUsernameRequest:
+    properties:
+      username:
+        type: string
+    type: object
+  account.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  account.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  account.RenameRequest:
+    properties:
+      new_username:
+        type: string
+    type: object
+  account.TokenPairResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  feed.FeedAuthor:
+    properties:
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  feed.FeedVideoItem:
+    properties:
+      author:
+        $ref: '#/definitions/feed.FeedAuthor'
+      cover_url:
+        type: string
+      create_time:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      is_liked:
+        type: boolean
+      likes_count:
+        type: integer
+      play_url:
+        type: string
+      title:
+        type: string
+    type: object
+  feed.ListByFollowingRequest:
+    properties:
+      latest_time:
+        type: integer
+      limit:
+        type: integer
+    type: object
+  feed.ListByFollowingResponse:
+    properties:
+      has_more:
+        type: boolean
+      next_time:
+        type: integer
+      video_list:
+        items:
+          $ref: '#/definitions/feed.FeedVideoItem'
+        type: array
+    type: object
+  feed.ListByPopularityRequest:
+    properties:
+      as_of:
+        description: 服务器返回的分钟时间戳；第一页传0
+        type: integer
+      latest_before:
+        type: string
+      latest_id_before:
+        type: integer
+      latest_popularity:
+        description: DB fallback 用（可选）
+        type: integer
+      limit:
+        type: integer
+      offset:
+        description: 下一页从这里开始；第一页传0
+        type: integer
+    type: object
+  feed.ListByPopularityResponse:
+    properties:
+      as_of:
+        type: integer
+      has_more:
+        type: boolean
+      next_latest_before:
+        type: string
+      next_latest_id_before:
+        type: integer
+      next_latest_popularity:
+        type: integer
+      next_offset:
+        type: integer
+      video_list:
+        items:
+          $ref: '#/definitions/feed.FeedVideoItem'
+        type: array
+    type: object
+  feed.ListLatestRequest:
+    properties:
+      latest_time:
+        type: integer
+      limit:
+        type: integer
+    type: object
+  feed.ListLatestResponse:
+    properties:
+      has_more:
+        type: boolean
+      next_time:
+        type: integer
+      video_list:
+        items:
+          $ref: '#/definitions/feed.FeedVideoItem'
+        type: array
+    type: object
+  feed.ListLikesCountRequest:
+    properties:
+      id_before:
+        type: integer
+      likes_count_before:
+        type: integer
+      limit:
+        type: integer
+    type: object
+  feed.ListLikesCountResponse:
+    properties:
+      has_more:
+        type: boolean
+      next_id_before:
+        type: integer
+      next_likes_count_before:
+        type: integer
+      video_list:
+        items:
+          $ref: '#/definitions/feed.FeedVideoItem'
+        type: array
+    type: object
+  social.FollowRequest:
+    properties:
+      vlogger_id:
+        type: integer
+    type: object
+  social.GetAllFollowersRequest:
+    properties:
+      vlogger_id:
+        type: integer
+    type: object
+  social.GetAllFollowersResponse:
+    properties:
+      followers:
+        items:
+          $ref: '#/definitions/account.Account'
+        type: array
+    type: object
+  social.GetAllVloggersRequest:
+    properties:
+      follower_id:
+        type: integer
+    type: object
+  social.GetAllVloggersResponse:
+    properties:
+      vloggers:
+        items:
+          $ref: '#/definitions/account.Account'
+        type: array
+    type: object
+  social.UnfollowRequest:
+    properties:
+      vlogger_id:
+        type: integer
+    type: object
+  swagger.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  swagger.IsLikedResponse:
+    properties:
+      is_liked:
+        type: boolean
+    type: object
+  swagger.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  swagger.UploadCoverResponse:
+    properties:
+      cover_url:
+        type: string
+      url:
+        type: string
+    type: object
+  swagger.UploadVideoResponse:
+    properties:
+      play_url:
+        type: string
+      url:
+        type: string
+    type: object
+  video.Comment:
+    properties:
+      author_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      parent_id:
+        type: integer
+      reply_count:
+        type: integer
+      reply_to_comment_id:
+        type: integer
+      reply_to_user_id:
+        type: integer
+      reply_to_username:
+        type: string
+      status:
+        description: '0: normal, 1: deleted'
+        type: integer
+      username:
+        type: string
+      video_id:
+        type: integer
+    type: object
+  video.CommentsResponse:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/video.Comment'
+        type: array
+    type: object
+  video.DeleteCommentRequest:
+    properties:
+      comment_id:
+        type: integer
+    type: object
+  video.GetAllCommentsRequest:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      video_id:
+        type: integer
+    type: object
+  video.GetDetailRequest:
+    properties:
+      id:
+        type: integer
+    type: object
+  video.LikeRequest:
+    properties:
+      video_id:
+        type: integer
+    type: object
+  video.ListByAuthorIDRequest:
+    properties:
+      author_id:
+        type: integer
+    type: object
+  video.ListRepliesRequest:
+    properties:
+      page:
+        type: integer
+      page_size:
+        type: integer
+      parent_id:
+        type: integer
+    type: object
+  video.PublishCommentRequest:
+    properties:
+      content:
+        type: string
+      parent_id:
+        type: integer
+      reply_to_comment_id:
+        type: integer
+      video_id:
+        type: integer
+    type: object
+  video.PublishVideoRequest:
+    properties:
+      cover_url:
+        type: string
+      description:
+        type: string
+      play_url:
+        type: string
+      title:
+        type: string
+    type: object
+  video.RepliesResponse:
+    properties:
+      replies:
+        items:
+          $ref: '#/definitions/video.Comment'
+        type: array
+    type: object
+  video.Video:
+    properties:
+      author_id:
+        type: integer
+      cover_url:
+        type: string
+      create_time:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      likes_count:
+        type: integer
+      play_url:
+        type: string
+      popularity:
+        type: integer
+      title:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: FeedSystem Video backend API documentation.
+  title: FeedSystem Video API
+  version: "1.0"
+paths:
+  /account/changePassword:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: change password payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: Change account password
+      tags:
+      - account
+  /account/findByID:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: account id payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.FindByIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/account.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: Find account by ID
+      tags:
+      - account
+  /account/findByUsername:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: username payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.FindByUsernameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/account.Account'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: Find account by username
+      tags:
+      - account
+  /account/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/account.TokenPairResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: Account login
+      tags:
+      - account
+  /account/logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout current account
+      tags:
+      - account
+  /account/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: refresh token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/account.TokenPairResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: Refresh token pair
+      tags:
+      - account
+  /account/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: create account payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.CreateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: Register account
+      tags:
+      - account
+  /account/rename:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: rename payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/account.RenameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/account.TokenPairResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rename current account
+      tags:
+      - account
+  /comment/delete:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: delete comment payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.DeleteCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a comment
+      tags:
+      - comment
+  /comment/listAll:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: list comments payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.GetAllCommentsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/video.CommentsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: List root comments of a video
+      tags:
+      - comment
+  /comment/listReplies:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: list replies payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.ListRepliesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/video.RepliesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: List replies under a parent comment
+      tags:
+      - comment
+  /comment/publish:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: publish comment payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.PublishCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Publish a comment
+      tags:
+      - comment
+  /feed/listByFollowing:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: following feed payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/feed.ListByFollowingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/feed.ListByFollowingResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List videos from followed vloggers
+      tags:
+      - feed
+  /feed/listByPopularity:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: popularity feed payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/feed.ListByPopularityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/feed.ListByPopularityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: List videos by popularity
+      tags:
+      - feed
+  /feed/listLatest:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: latest feed payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/feed.ListLatestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/feed.ListLatestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: List latest videos
+      tags:
+      - feed
+  /feed/listLikesCount:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: likes ranking payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/feed.ListLikesCountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/feed.ListLikesCountResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: List videos by likes count
+      tags:
+      - feed
+  /like/isLiked:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: video payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.LikeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.IsLikedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check whether current account liked a video
+      tags:
+      - like
+  /like/like:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: like payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.LikeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Like a video
+      tags:
+      - like
+  /like/listMyLikedVideos:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/video.Video'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List videos liked by current account
+      tags:
+      - like
+  /like/unlike:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: unlike payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.LikeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unlike a video
+      tags:
+      - like
+  /social/follow:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: follow payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/social.FollowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Follow a vlogger
+      tags:
+      - social
+  /social/getAllFollowers:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: followers payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/social.GetAllFollowersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/social.GetAllFollowersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get followers of a vlogger
+      tags:
+      - social
+  /social/getAllVloggers:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: vloggers payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/social.GetAllVloggersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/social.GetAllVloggersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get followed vloggers of an account
+      tags:
+      - social
+  /social/unfollow:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: unfollow payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/social.UnfollowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unfollow a vlogger
+      tags:
+      - social
+  /video/getDetail:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: video id payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.GetDetailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/video.Video'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: Get video detail
+      tags:
+      - video
+  /video/listByAuthorID:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: author payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.ListByAuthorIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/video.Video'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      summary: List videos by author ID
+      tags:
+      - video
+  /video/publish:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: publish video payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/video.PublishVideoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/video.Video'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Publish a video record
+      tags:
+      - video
+  /video/uploadCover:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: cover image
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.UploadCoverResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload cover image
+      tags:
+      - video
+  /video/uploadVideo:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: mp4 file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.UploadVideoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/swagger.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload video file
+      tags:
+      - video
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

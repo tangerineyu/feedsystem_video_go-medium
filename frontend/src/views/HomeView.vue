@@ -8,7 +8,8 @@ import { ApiError } from '../api/client'
 import * as commentApi from '../api/comment'
 import * as feedApi from '../api/feed'
 import * as likeApi from '../api/like'
-import type { Comment, FeedVideoItem } from '../api/types'
+import * as videoApi from '../api/video'
+import type { Comment, FeedVideoItem, Video } from '../api/types'
 import { useAuthStore } from '../stores/auth'
 import { useSocialStore } from '../stores/social'
 import { useToastStore } from '../stores/toast'
@@ -24,7 +25,7 @@ const toast = useToastStore()
 const tab = ref<TabKey>('recommend')
 const scroller = ref<HTMLDivElement | null>(null)
 
-const q = computed(() => (typeof route.query.q === 'string' ? route.query.q.trim().toLowerCase() : ''))
+const q = computed(() => (typeof route.query.q === 'string' ? route.query.q.trim() : ''))
 
 const recommend = reactive({
   items: [] as FeedVideoItem[],
@@ -51,6 +52,15 @@ const following = reactive({
   nextTime: 0,
 })
 
+const searchState = reactive({
+  items: [] as FeedVideoItem[],
+  loading: false,
+  error: '',
+  hasMore: false,
+  nextTime: 0,
+  keyword: '',
+})
+
 const likeBusy = reactive<Record<string, boolean>>({})
 const followBusy = reactive<Record<string, boolean>>({})
 
@@ -59,6 +69,7 @@ const activeIndex = ref(0)
 const videoMap = new Map<number, HTMLVideoElement>()
 
 const currentState = computed(() => {
+  if (q.value) return searchState
   if (tab.value === 'hot') return hot
   if (tab.value === 'following') return following
   return recommend
@@ -66,8 +77,7 @@ const currentState = computed(() => {
 
 const filteredItems = computed(() => {
   const items = currentState.value.items
-  if (!q.value) return items
-  return items.filter((v) => v.title.toLowerCase().includes(q.value) || v.author.username.toLowerCase().includes(q.value))
+  return items
 })
 
 const activeItem = computed(() => filteredItems.value[activeIndex.value] ?? null)
@@ -207,7 +217,51 @@ async function loadFollowing(reset: boolean) {
   }
 }
 
+function videoToFeedItem(video: Video): FeedVideoItem {
+  return {
+    id: video.id,
+    author: {
+      id: video.author_id,
+      username: video.username,
+    },
+    title: video.title,
+    description: video.description,
+    play_url: video.play_url,
+    cover_url: video.cover_url,
+    create_time: new Date(video.create_time).getTime(),
+    likes_count: video.likes_count,
+    is_liked: false,
+  }
+}
+
+async function loadSearch(reset: boolean) {
+  const keyword = q.value
+  if (!keyword) return
+  if (searchState.loading) return
+  searchState.loading = true
+  searchState.error = ''
+  if (reset) {
+    searchState.keyword = keyword
+    searchState.nextTime = 0
+  }
+  try {
+    const res = await videoApi.searchVideos({ keyword, limit: 10, latest_time: reset ? 0 : searchState.nextTime })
+    const items = res.video_list.map(videoToFeedItem)
+    searchState.hasMore = res.has_more
+    searchState.nextTime = res.next_time
+    searchState.items = reset ? items : searchState.items.concat(items)
+  } catch (e) {
+    searchState.error = e instanceof ApiError ? e.message : String(e)
+  } finally {
+    searchState.loading = false
+  }
+}
+
 async function ensureTabLoaded() {
+  if (q.value) {
+    if (searchState.keyword !== q.value || searchState.items.length === 0) await loadSearch(true)
+    return
+  }
   if (tab.value === 'recommend' && recommend.items.length === 0) await loadRecommend(true)
   if (tab.value === 'hot' && hot.items.length === 0) await loadHot(true)
   if (tab.value === 'following' && following.items.length === 0) await loadFollowing(true)
@@ -219,6 +273,10 @@ async function loadMoreIfNeeded() {
   if (items.length === 0) return
   if (idx < items.length - 3) return
 
+  if (q.value) {
+    if (searchState.hasMore) await loadSearch(false)
+    return
+  }
   if (tab.value === 'recommend' && recommend.hasMore) await loadRecommend(false)
   if (tab.value === 'hot' && hot.hasMore) await loadHot(false)
   if (tab.value === 'following' && following.hasMore) await loadFollowing(false)
@@ -401,6 +459,16 @@ watch(
   async () => {
     activeIndex.value = 0
     if (scroller.value) scroller.value.scrollTop = 0
+    if (q.value) {
+      searchState.items = []
+      searchState.hasMore = false
+      searchState.nextTime = 0
+      await loadSearch(true)
+    } else {
+      searchState.items = []
+      searchState.keyword = ''
+      await ensureTabLoaded()
+    }
     await nextTick()
     await playActive()
   },

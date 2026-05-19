@@ -2,6 +2,7 @@ package video
 
 import (
 	"feedsystem_video_go/internal/middleware/jwt"
+	"feedsystem_video_go/internal/swagger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,10 +11,23 @@ type LikeHandler struct {
 	service *LikeService
 }
 
+var _ = swagger.ErrorResponse{}
+
 func NewLikeHandler(service *LikeService) *LikeHandler {
 	return &LikeHandler{service: service}
 }
 
+// Like godoc
+// @Summary Like a video
+// @Tags like
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body LikeRequest true "like payload"
+// @Success 200 {object} swagger.MessageResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /like/like [post]
 func (lh *LikeHandler) Like(c *gin.Context) {
 	var req LikeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -42,6 +56,17 @@ func (lh *LikeHandler) Like(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "like success"})
 }
 
+// Unlike godoc
+// @Summary Unlike a video
+// @Tags like
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body LikeRequest true "unlike payload"
+// @Success 200 {object} swagger.MessageResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /like/unlike [post]
 func (lh *LikeHandler) Unlike(c *gin.Context) {
 	var req LikeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -70,6 +95,17 @@ func (lh *LikeHandler) Unlike(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "unlike success"})
 }
 
+// IsLiked godoc
+// @Summary Check whether current account liked a video
+// @Tags like
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body LikeRequest true "video payload"
+// @Success 200 {object} swagger.IsLikedResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /like/isLiked [post]
 func (lh *LikeHandler) IsLiked(c *gin.Context) {
 	var req LikeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -94,6 +130,15 @@ func (lh *LikeHandler) IsLiked(c *gin.Context) {
 	c.JSON(200, gin.H{"is_liked": isLiked})
 }
 
+// ListMyLikedVideos godoc
+// @Summary List videos liked by current account
+// @Tags like
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} Video
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /like/listMyLikedVideos [post]
 func (lh *LikeHandler) ListMyLikedVideos(c *gin.Context) {
 	accountID, err := jwt.GetAccountID(c)
 	if err != nil {

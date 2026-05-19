@@ -4,21 +4,23 @@ import (
 	"feedsystem_video_go/internal/account"
 	"feedsystem_video_go/internal/feed"
 	"feedsystem_video_go/internal/middleware/jwt"
-	"feedsystem_video_go/internal/middleware/ratelimit"
 	"feedsystem_video_go/internal/middleware/rabbitmq"
+	"feedsystem_video_go/internal/middleware/ratelimit"
 	rediscache "feedsystem_video_go/internal/middleware/redis"
 	"feedsystem_video_go/internal/social"
 	"feedsystem_video_go/internal/video"
 	"feedsystem_video_go/internal/worker"
 	"log"
 	"time"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *gin.Engine {
+func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ, trustedProxies []string) *gin.Engine {
 	r := gin.Default()
-	if err := r.SetTrustedProxies(nil); err != nil {
+	registerSwaggerRoutes(r)
+	if err := r.SetTrustedProxies(trustedProxies); err != nil {
 		log.Printf("SetTrustedProxies failed: %v", err)
 	}
 	r.Static("/static", "./.run/uploads")
@@ -62,6 +64,7 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ) *g
 	{
 		videoGroup.POST("/listByAuthorID", videoHandler.ListByAuthorID)
 		videoGroup.POST("/getDetail", videoHandler.GetDetail)
+		videoGroup.POST("/search", videoHandler.Search)
 	}
 	protectedVideoGroup := videoGroup.Group("")
 	protectedVideoGroup.Use(jwt.JWTAuth(accountRepository, cache))

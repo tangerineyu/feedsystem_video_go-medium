@@ -280,9 +280,3 @@ func clip(s string) string {
     return s[:240]
 }
 
-func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
-}

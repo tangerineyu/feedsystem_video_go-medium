@@ -2,6 +2,7 @@ package feed
 
 import (
 	"feedsystem_video_go/internal/middleware/jwt"
+	"feedsystem_video_go/internal/swagger"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,10 +12,22 @@ type FeedHandler struct {
 	service *FeedService
 }
 
+var _ = swagger.ErrorResponse{}
+
 func NewFeedHandler(service *FeedService) *FeedHandler {
 	return &FeedHandler{service: service}
 }
 
+// ListLatest godoc
+// @Summary List latest videos
+// @Tags feed
+// @Accept json
+// @Produce json
+// @Param request body ListLatestRequest true "latest feed payload"
+// @Success 200 {object} ListLatestResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /feed/listLatest [post]
 func (f *FeedHandler) ListLatest(c *gin.Context) {
 	var req ListLatestRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -40,6 +53,16 @@ func (f *FeedHandler) ListLatest(c *gin.Context) {
 	c.JSON(200, feedItems)
 }
 
+// ListLikesCount godoc
+// @Summary List videos by likes count
+// @Tags feed
+// @Accept json
+// @Produce json
+// @Param request body ListLikesCountRequest true "likes ranking payload"
+// @Success 200 {object} ListLikesCountResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /feed/listLikesCount [post]
 func (f *FeedHandler) ListLikesCount(c *gin.Context) {
 	var req ListLikesCountRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -88,6 +111,17 @@ func (f *FeedHandler) ListLikesCount(c *gin.Context) {
 	c.JSON(200, feedItems)
 }
 
+// ListByFollowing godoc
+// @Summary List videos from followed vloggers
+// @Tags feed
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body ListByFollowingRequest true "following feed payload"
+// @Success 200 {object} ListByFollowingResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /feed/listByFollowing [post]
 func (f *FeedHandler) ListByFollowing(c *gin.Context) {
 	var req ListByFollowingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -113,6 +147,16 @@ func (f *FeedHandler) ListByFollowing(c *gin.Context) {
 	c.JSON(200, feedItems)
 }
 
+// ListByPopularity godoc
+// @Summary List videos by popularity
+// @Tags feed
+// @Accept json
+// @Produce json
+// @Param request body ListByPopularityRequest true "popularity feed payload"
+// @Success 200 {object} ListByPopularityResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /feed/listByPopularity [post]
 func (f *FeedHandler) ListByPopularity(c *gin.Context) {
 	var req ListByPopularityRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

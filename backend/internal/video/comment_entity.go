@@ -44,4 +44,11 @@ type ListRepliesRequest struct {
 	PageSize int `json:"page_size"`
 }
 
+type CommentsResponse struct {
+	Comments []Comment `json:"comments"`
+}
+
+type RepliesResponse struct {
+	Replies []Comment `json:"replies"`
+}
 

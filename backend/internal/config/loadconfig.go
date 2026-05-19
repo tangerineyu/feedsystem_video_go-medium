@@ -1,17 +1,18 @@
 package config
 
 import (
-	"fmt"
-	"os"
 	"errors"
+	"fmt"
 	"gopkg.in/yaml.v3"
+	"os"
 )
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	Database DatabaseConfig `yaml:"database"`
-	Redis    RedisConfig    `yaml:"redis"`
-	RabbitMQ RabbitMQConfig `yaml:"rabbitmq"`
+	Server              ServerConfig        `yaml:"server"`
+	Database            DatabaseConfig      `yaml:"database"`
+	Redis               RedisConfig         `yaml:"redis"`
+	RabbitMQ            RabbitMQConfig      `yaml:"rabbitmq"`
+	TrustedProxies      []string            `yaml:"trusted_proxies"`
 	ObservabilityConfig ObservabilityConfig `yaml:"observability"`
 }
 
@@ -45,10 +46,11 @@ type ObservabilityConfig struct {
 	Pprof PprofConfig `yaml:"pprof"`
 }
 type PprofConfig struct {
-	Enabled bool `yaml:"enabled"`
-	ApiAddr string `yaml:"api_addr"`
+	Enabled    bool   `yaml:"enabled"`
+	ApiAddr    string `yaml:"api_addr"`
 	WorkerAddr string `yaml:"worker_addr"`
 }
+
 func Load(filename string) (Config, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -83,7 +85,7 @@ func DefaultLocalConfig() Config {
 		Database: DatabaseConfig{
 			Host:     "localhost",
 			Port:     3306,
-			User:	 "root",
+			User:     "root",
 			Password: "123456",
 			DBName:   "feedsystem",
 		},
@@ -99,10 +101,11 @@ func DefaultLocalConfig() Config {
 			Username: "admin",
 			Password: "password123",
 		},
+		TrustedProxies: []string{"127.0.0.1/32", "::1/128"},
 		ObservabilityConfig: ObservabilityConfig{
 			Pprof: PprofConfig{
-				Enabled: true,
-				ApiAddr: "localhost:6060",
+				Enabled:    true,
+				ApiAddr:    "localhost:6060",
 				WorkerAddr: "localhost:6061",
 			},
 		},

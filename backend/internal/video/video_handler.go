@@ -3,6 +3,7 @@ package video
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"feedsystem_video_go/internal/swagger"
 	"fmt"
 	"net/http"
 	"os"
@@ -22,10 +23,22 @@ type VideoHandler struct {
 	accountService *account.AccountService
 }
 
+var _ = swagger.ErrorResponse{}
+
 func NewVideoHandler(service *VideoService, accountService *account.AccountService) *VideoHandler {
 	return &VideoHandler{service: service, accountService: accountService}
 }
 
+// PublishVideo godoc
+// @Summary Publish a video record
+// @Tags video
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body PublishVideoRequest true "publish video payload"
+// @Success 200 {object} Video
+// @Failure 400 {object} swagger.ErrorResponse
+// @Router /video/publish [post]
 func (vh *VideoHandler) PublishVideo(c *gin.Context) {
 	var req PublishVideoRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -59,6 +72,17 @@ func (vh *VideoHandler) PublishVideo(c *gin.Context) {
 	c.JSON(200, video)
 }
 
+// UploadVideo godoc
+// @Summary Upload video file
+// @Tags video
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "mp4 file"
+// @Success 200 {object} swagger.UploadVideoResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /video/uploadVideo [post]
 func (vh *VideoHandler) UploadVideo(c *gin.Context) {
 	authorId, err := jwt.GetAccountID(c)
 	if err != nil {
@@ -109,6 +133,17 @@ func (vh *VideoHandler) UploadVideo(c *gin.Context) {
 	})
 }
 
+// UploadCover godoc
+// @Summary Upload cover image
+// @Tags video
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "cover image"
+// @Success 200 {object} swagger.UploadCoverResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /video/uploadCover [post]
 func (vh *VideoHandler) UploadCover(c *gin.Context) {
 	authorId, err := jwt.GetAccountID(c)
 	if err != nil {
@@ -196,6 +231,15 @@ func (vh *VideoHandler) DeleteVideo(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "video deleted"})
 }
 
+// ListByAuthorID godoc
+// @Summary List videos by author ID
+// @Tags video
+// @Accept json
+// @Produce json
+// @Param request body ListByAuthorIDRequest true "author payload"
+// @Success 200 {array} Video
+// @Failure 400 {object} swagger.ErrorResponse
+// @Router /video/listByAuthorID [post]
 func (vh *VideoHandler) ListByAuthorID(c *gin.Context) {
 	var req ListByAuthorIDRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -210,6 +254,43 @@ func (vh *VideoHandler) ListByAuthorID(c *gin.Context) {
 	c.JSON(200, videos)
 }
 
+// Search godoc
+// @Summary Search videos by keyword
+// @Tags video
+// @Accept json
+// @Produce json
+// @Param request body SearchVideoRequest true "search video payload"
+// @Success 200 {object} SearchVideoResponse
+// @Failure 400 {object} swagger.ErrorResponse
+// @Failure 500 {object} swagger.ErrorResponse
+// @Router /video/search [post]
+func (vh *VideoHandler) Search(c *gin.Context) {
+	var req SearchVideoRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	var latestTime time.Time
+	if req.LatestTime > 0 {
+		latestTime = time.UnixMilli(req.LatestTime)
+	}
+	resp, err := vh.service.Search(c.Request.Context(), req.Keyword, req.Limit, latestTime)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
+}
+
+// GetDetail godoc
+// @Summary Get video detail
+// @Tags video
+// @Accept json
+// @Produce json
+// @Param request body GetDetailRequest true "video id payload"
+// @Success 200 {object} Video
+// @Failure 400 {object} swagger.ErrorResponse
+// @Router /video/getDetail [post]
 func (vh *VideoHandler) GetDetail(c *gin.Context) {
 	var req GetDetailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

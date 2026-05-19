@@ -22,6 +22,8 @@ type VideoService struct {
 	popularityMQ *rabbitmq.PopularityMQ
 }
 
+var ErrVideoNotFound = errors.New("video not found")
+
 func NewVideoService(repo *VideoRepository, cache *rediscache.Client, popularityMQ *rabbitmq.PopularityMQ) *VideoService {
 	return &VideoService{repo: repo, cache: cache, cacheTTL: 5 * time.Minute, popularityMQ: popularityMQ}
 }
@@ -47,6 +49,9 @@ func (vs *VideoService) Publish(ctx context.Context, video *Video) error {
 	//事务保证视频写入库和消息写入本地消息表的一致性
 	err := vs.repo.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(video).Error; err != nil {
+			return err
+		}
+		if err := vs.repo.CreateSearchTerms(ctx, tx, video); err != nil {
 			return err
 		}
 
@@ -96,13 +101,45 @@ func (vs *VideoService) ListByAuthorID(ctx context.Context, authorID uint) ([]Vi
 	return videos, nil
 }
 
+func (vs *VideoService) Search(ctx context.Context, keyword string, limit int, latestBefore time.Time) (*SearchVideoResponse, error) {
+	keyword = strings.TrimSpace(keyword)
+	if keyword == "" {
+		return nil, errors.New("keyword is required")
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	videos, err := vs.repo.Search(ctx, keyword, limit+1, latestBefore)
+	if err != nil {
+		return nil, err
+	}
+
+	hasMore := len(videos) > limit
+	if hasMore {
+		videos = videos[:limit]
+	}
+
+	var nextTime int64
+	if hasMore && len(videos) > 0 {
+		nextTime = videos[len(videos)-1].CreateTime.UnixMilli()
+	}
+
+	return &SearchVideoResponse{
+		VideoList: videos,
+		NextTime:  nextTime,
+		HasMore:   hasMore,
+	}, nil
+}
+
 func (vs *VideoService) GetDetail(ctx context.Context, id uint) (*Video, error) {
 	cacheKey := fmt.Sprintf("video:detail:id=%d", id)
 
 	getCached := func() (*Video, bool) {
+		
 		opCtx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
 		defer cancel()
-
+		
 		b, err := vs.cache.GetBytes(opCtx, cacheKey)
 		if err != nil {
 			return nil, false
@@ -146,11 +183,11 @@ func (vs *VideoService) GetDetail(ctx context.Context, id uint) (*Video, error) 
 
 			if lockErr == nil && locked {
 				defer func() { _ = vs.cache.Unlock(context.Background(), lockKey, token) }()
-
+				// 二次查询，拿到锁后可能之前的请求已经回填了缓存
 				if v, ok := getCached(); ok {
 					return v, nil
 				}
-
+				// 真没拿到：自己查询数据库并回填缓存
 				video, err := vs.repo.GetByID(ctx, id)
 				if err != nil {
 					return nil, err
