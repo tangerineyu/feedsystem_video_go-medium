@@ -8,6 +8,7 @@ import (
 	"feedsystem_video_go/internal/video"
 	"log"
 	"strings"
+	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -44,17 +45,26 @@ func (w *CommentWorker) Run(ctx context.Context) error {
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case d, ok := <-deliveries:
-			if !ok {
-				return errors.New("deliveries channel closed")
+	var wg sync.WaitGroup
+	for i := 0; i < consumeConcurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case d, ok := <-deliveries:
+					if !ok {
+						return
+					}
+					w.handleDelivery(ctx, d)
+				}
 			}
-			w.handleDelivery(ctx, d)
-		}
+		}()
 	}
+	wg.Wait()
+	return nil
 }
 
 func (w *CommentWorker) handleDelivery(ctx context.Context, d amqp.Delivery) {
@@ -95,15 +105,15 @@ func (w *CommentWorker) applyPublish(ctx context.Context, evt *rabbitmq.CommentE
 	}
 
 	c := &video.Comment{
-		Username: strings.TrimSpace(evt.Username),
-		VideoID:  evt.VideoID,
-		AuthorID: evt.AuthorID,
-		Content:  strings.TrimSpace(evt.Content),
-		ParentID: evt.ParentID,
+		Username:         strings.TrimSpace(evt.Username),
+		VideoID:          evt.VideoID,
+		AuthorID:         evt.AuthorID,
+		Content:          strings.TrimSpace(evt.Content),
+		ParentID:         evt.ParentID,
 		ReplyToCommentID: evt.ReplyToCommentID,
-		ReplyToUserID: evt.ReplyToUserID,
-		ReplyToUsername: evt.ReplyToUsername,
-		Status: video.CommentStatusNormal,
+		ReplyToUserID:    evt.ReplyToUserID,
+		ReplyToUsername:  evt.ReplyToUsername,
+		Status:           video.CommentStatusNormal,
 	}
 	if err := w.comments.CreateComment(ctx, c); err != nil {
 		return err
@@ -142,4 +152,3 @@ func (w *CommentWorker) applyDelete(ctx context.Context, evt *rabbitmq.CommentEv
 	}
 	return w.comments.IncreaseReplyCount(ctx, -1, c.ParentID)
 }
-

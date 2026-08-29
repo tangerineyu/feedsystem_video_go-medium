@@ -7,6 +7,7 @@ import (
 	"feedsystem_video_go/internal/middleware/rabbitmq"
 	"feedsystem_video_go/internal/social"
 	"log"
+	"sync"
 
 	"github.com/go-sql-driver/mysql"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -43,17 +44,26 @@ func (w *SocialWorker) Run(ctx context.Context) error {
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case d, ok := <-deliveries:
-			if !ok {
-				return errors.New("deliveries channel closed")
+	var wg sync.WaitGroup
+	for i := 0; i < consumeConcurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case d, ok := <-deliveries:
+					if !ok {
+						return
+					}
+					w.handleDelivery(ctx, d)
+				}
 			}
-			w.handleDelivery(ctx, d)
-		}
+		}()
 	}
+	wg.Wait()
+	return nil
 }
 
 func (w *SocialWorker) handleDelivery(ctx context.Context, d amqp.Delivery) {

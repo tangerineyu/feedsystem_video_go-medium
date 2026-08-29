@@ -10,7 +10,7 @@ import (
 	"feedsystem_video_go/internal/video"
 	"feedsystem_video_go/internal/worker"
 	"log"
-	
+
 	"os"
 	"os/signal"
 	"strconv"
@@ -103,8 +103,16 @@ func main() {
 			log.Fatalf("Failed to declare popularity topology: %v", err)
 		}
 	}
-	if err := ch.Qos(50, 0, false); err != nil {
+	// prefetch 需覆盖并发消费缓冲（consumeConcurrency × 25）
+	if err := ch.Qos(200, 0, false); err != nil {
 		log.Fatalf("Failed to set qos: %v", err)
+	}
+
+	// 限制 DB 连接池，避免并发消费打满 MySQL max_connections
+	if sqlDB, err := sqlDB.DB(); err == nil {
+		sqlDB.SetMaxOpenConns(40)
+		sqlDB.SetMaxIdleConns(20)
+		sqlDB.SetConnMaxLifetime(10 * time.Minute)
 	}
 
 	repo := social.NewSocialRepository(sqlDB)
@@ -112,7 +120,7 @@ func main() {
 	videoRepo := video.NewVideoRepository(sqlDB)
 	likeRepo := video.NewLikeRepository(sqlDB)
 	commentRepo := video.NewCommentRepository(sqlDB)
-	likeWorker := worker.NewLikeWorker(ch, likeRepo, videoRepo, likeQueue)
+	likeWorker := worker.NewLikeWorker(ch, likeRepo, likeQueue)
 	commentWorker := worker.NewCommentWorker(ch, commentRepo, videoRepo, commentQueue)
 	var popularityWorker *worker.PopularityWorker
 	if cache != nil {

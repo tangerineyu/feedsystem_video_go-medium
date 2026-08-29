@@ -26,31 +26,6 @@ func (r *LikeRepository) Unlike(ctx context.Context, like *Like) error {
 		Delete(&Like{}).Error
 }
 
-func (r *LikeRepository) LikeIgnoreDuplicate(ctx context.Context, like *Like) (created bool, err error) {
-	if like == nil || like.VideoID == 0 || like.AccountID == 0 {
-		return false, nil
-	}
-	err = r.db.WithContext(ctx).Create(like).Error
-	if err == nil {
-		return true, nil
-	}
-	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
-		return false, nil
-	}
-	return false, err
-}
-
-func (r *LikeRepository) DeleteByVideoAndAccount(ctx context.Context, videoID, accountID uint) (deleted bool, err error) {
-	if videoID == 0 || accountID == 0 {
-		return false, nil
-	}
-	res := r.db.WithContext(ctx).
-		Where("video_id = ? AND account_id = ?", videoID, accountID).
-		Delete(&Like{})
-	return res.RowsAffected > 0, res.Error
-}
-
 func (r *LikeRepository) IsLiked(ctx context.Context, videoID, accountID uint) (bool, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&Like{}).
@@ -98,4 +73,52 @@ func (r *LikeRepository) ListLikedVideos(ctx context.Context, accountID uint) ([
 		return nil, err
 	}
 	return videos, nil
+}
+
+// 点赞+合并更新likes_count/popularity, 一次事务
+func (r *LikeRepository) LikeAndBump(ctx context.Context, like *Like) (created bool, err error) {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(like).Error; err != nil {
+			return err
+		}
+		return tx.Model(&Video{}).
+			Where("id = ?", like.VideoID).
+			UpdateColumns(map[string]interface{}{
+				//点赞与加热度场景没问题, 如果是取消场景, 可以用GREATEST
+				"likes_count": gorm.Expr("likes_count + 1"),
+				"popularity":  gorm.Expr("popularity + 1"),
+			}).Error
+	})
+	if err != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// 取消点赞+合并更新likes_count/popularity, 一次事务
+func (r *LikeRepository) UnlikeAndBump(ctx context.Context, videoID, accountID uint) (deleted bool, err error) {
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Where("video_id = ? AND account_id = ?", videoID, accountID).Delete(&Like{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return nil
+		}
+		deleted = true
+		return tx.Model(&Video{}).
+			Where("id = ?", videoID).
+			UpdateColumns(map[string]interface{}{
+				"likes_count": gorm.Expr("GREATEST(likes_count - 1, 0)"),
+				"popularity":  gorm.Expr("GREATEST(popularity - 1, 0)"),
+			}).Error
+	})
+	if err != nil {
+		return false, err
+	}
+	return deleted, nil
 }

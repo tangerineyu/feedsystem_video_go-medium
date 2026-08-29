@@ -7,23 +7,27 @@ import (
 	"feedsystem_video_go/internal/middleware/rabbitmq"
 	"feedsystem_video_go/internal/video"
 	"log"
-	amqp "github.com/rabbitmq/amqp091-go"
+	"sync"
 	"time"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+// consumeConcurrency 单个队列的并发消费 goroutine 数
+const consumeConcurrency = 8
 
 type LikeWorker struct {
 	ch    *amqp.Channel
-	likes  *video.LikeRepository
-	videos *video.VideoRepository
+	likes *video.LikeRepository
 	queue string
 }
 
-func NewLikeWorker(ch *amqp.Channel, likes *video.LikeRepository, videos *video.VideoRepository, queue string) *LikeWorker {
-	return &LikeWorker{ch: ch, likes: likes, videos: videos, queue: queue}
+func NewLikeWorker(ch *amqp.Channel, likes *video.LikeRepository, queue string) *LikeWorker {
+	return &LikeWorker{ch: ch, likes: likes, queue: queue}
 }
 
 func (w *LikeWorker) Run(ctx context.Context) error {
-	if w == nil || w.ch == nil || w.likes == nil || w.videos == nil {
+	if w == nil || w.ch == nil || w.likes == nil {
 		return errors.New("like worker is not initialized")
 	}
 	if w.queue == "" {
@@ -43,17 +47,26 @@ func (w *LikeWorker) Run(ctx context.Context) error {
 		return err
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case d, ok := <-deliveries:
-			if !ok {
-				return errors.New("deliveries channel closed")
+	var wg sync.WaitGroup
+	for i := 0; i < consumeConcurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case d, ok := <-deliveries:
+					if !ok {
+						return
+					}
+					w.handleDelivery(ctx, d)
+				}
 			}
-			w.handleDelivery(ctx, d)
-		}
+		}()
 	}
+	wg.Wait()
+	return nil
 }
 
 func (w *LikeWorker) handleDelivery(ctx context.Context, d amqp.Delivery) {
@@ -85,16 +98,10 @@ func (w *LikeWorker) process(ctx context.Context, body []byte) error {
 	}
 }
 
+// api层已经做过isLike校验, 所以这里直接加就好
 func (w *LikeWorker) applyLike(ctx context.Context, userID, videoID uint) error {
-	ok, err := w.videos.IsExist(ctx, videoID)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return nil
-	}
-
-	created, err := w.likes.LikeIgnoreDuplicate(ctx, &video.Like{
+	// like与popularity合并更新,一次提交
+	created, err := w.likes.LikeAndBump(ctx, &video.Like{
 		VideoID:   videoID,
 		AccountID: userID,
 		CreatedAt: time.Now(),
@@ -105,32 +112,15 @@ func (w *LikeWorker) applyLike(ctx context.Context, userID, videoID uint) error 
 	if !created {
 		return nil
 	}
-
-	if err := w.videos.ChangeLikesCount(ctx, videoID, 1); err != nil {
-		return err
-	}
-	return w.videos.ChangePopularity(ctx, videoID, 1)
+	return nil
 }
 
+// api层已经做过存在性检查
 func (w *LikeWorker) applyUnlike(ctx context.Context, userID, videoID uint) error {
-	ok, err := w.videos.IsExist(ctx, videoID)
+	deleted, err := w.likes.UnlikeAndBump(ctx, videoID, userID)
 	if err != nil {
 		return err
 	}
-	if !ok {
-		return nil
-	}
-
-	deleted, err := w.likes.DeleteByVideoAndAccount(ctx, videoID, userID)
-	if err != nil {
-		return err
-	}
-	if !deleted {
-		return nil
-	}
-
-	if err := w.videos.ChangeLikesCount(ctx, videoID, -1); err != nil {
-		return err
-	}
-	return w.videos.ChangePopularity(ctx, videoID, -1)
+	_ = deleted
+	return nil
 }
