@@ -25,13 +25,13 @@ func SetRouter(db *gorm.DB, cache *rediscache.Client, rmq *rabbitmq.RabbitMQ, tr
 	}
 	r.Static("/static", "./.run/uploads")
 	// rate_limit
-	loginLimiter := ratelimit.Limit(cache, "account_login", 10, time.Minute, ratelimit.KeyByIP)
-	registerLimiter := ratelimit.Limit(cache, "account_register", 5, time.Hour, ratelimit.KeyByIP)
+	// 按 IP + 用户名组合限流：共享出口 IP 下不同账号互不影响，同一账号仍防暴力穷举
+	loginLimiter := ratelimit.TokenBucketLimit(cache, "account_login", 10.0/60, 10, time.Minute, ratelimit.KeyByIPAndUsername)
+	registerLimiter := ratelimit.TokenBucketLimit(cache, "account_register", 5.0/3600, 5, time.Hour, ratelimit.KeyByIPAndUsername)
 
-	likeLimiter := ratelimit.Limit(cache, "like_write", 30, time.Minute, ratelimit.KeyByAccount)
-	commentLimiter := ratelimit.Limit(cache, "comment_write", 10, time.Minute, ratelimit.KeyByAccount)
-	socialLimiter := ratelimit.Limit(cache, "social_write", 20, time.Minute, ratelimit.KeyByAccount)
-
+	likeLimiter := ratelimit.TokenBucketLimit(cache, "like_write", 30.0/60, 30, time.Minute, ratelimit.KeyByAccount)
+	commentLimiter := ratelimit.TokenBucketLimit(cache, "comment_write", 10.0/60, 10, time.Minute, ratelimit.KeyByAccount)
+	socialLimiter := ratelimit.TokenBucketLimit(cache, "social_write", 20.0/60, 20, time.Minute, ratelimit.KeyByAccount)
 	// account
 	accountRepository := account.NewAccountRepository(db)
 	accountService := account.NewAccountService(accountRepository, cache)

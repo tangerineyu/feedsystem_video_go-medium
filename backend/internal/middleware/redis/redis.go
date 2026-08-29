@@ -94,3 +94,38 @@ func (c *Client) IncrementWithExpire(ctx context.Context, key string, expire tim
 	}
 	return count, nil
 }
+
+var tokenBucketScript = redis.NewScript(`
+local tokens = tonumber(redis.call('HGET', KEYS[1], 'tokens') or '-1')
+local last = tonumber(redis.call('HGET', KEYS[1], 'last') or '0')
+local now = tonumber(ARGV[1])
+local rate = tonumber(ARGV[2])
+local capacity = tonumber(ARGV[3])
+local ttl = tonumber(ARGV[4])
+
+if tokens < 0 then
+	tokens = capacity
+else
+	tokens = math.min(tokens + (now - last) /1000 * rate, capacity)
+end
+
+redis.call('HSET', KEYS[1], 'tokens', tokens, 'last', now)
+redis.call('PEXPIRE', KEYS[1], ttl)
+
+if tokens < 1 then 
+	return 0
+end
+redis.call('HSET', KEYS[1], 'tokens', tokens - 1)
+return 1
+`)
+
+func (c *Client) TokenBucketAllow(ctx context.Context, key string, rate, capacity float64, ttl time.Duration) (bool, error) {
+	if c == nil || c.rdb == nil {
+		return true, nil
+	}
+	res, err := tokenBucketScript.Run(ctx, c.rdb, []string{key}, float64(time.Now().UnixMilli()), rate, capacity, int64(ttl/time.Millisecond)).Result()
+	if err != nil {
+		return false, err
+	}
+	return res.(int64) == 1, nil
+}
